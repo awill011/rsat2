@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+import csv
 
 input_file = "final_reading(in).csv"
 output_file = "Long_final.csv"
@@ -66,19 +67,23 @@ def rsat_score(response_words, passage_sentences):
 def process_responses(passages_file, responses_file, output_file):
     # Passages lookup by Article_ID
     passages = {}
-    with open(passages_file, newline="", encoding="utf-8") as pf:
+    # Use latin-1 to handle the Mac/Excel encoding issues we saw earlier
+    with open(passages_file, mode='r', encoding="latin-1") as pf:
         reader = csv.DictReader(pf)
         for row in reader:
-            article_id = (row.get("Article_ID") or "").strip()
-            passage = (row.get("passage") or "").strip()
+            # Clean the ID: lowercase and remove all surrounding whitespace
+            article_id = str(row.get("Article_ID") or "").strip().lower()
+            passage = (row.get("Passage") or "").strip()
             if article_id and passage:
                 passages[article_id] = passage
 
-    with open(responses_file, newline="", encoding="utf-8") as rf, \
+    # Print what we found to help debug
+    print(f"Loaded {len(passages)} passages: {list(passages.keys())}")
+
+    with open(responses_file, newline="", encoding="latin-1") as rf, \
          open(output_file, "w", newline="", encoding="utf-8") as wf:
 
         reader = csv.DictReader(rf)
-
         fieldnames = [
             "Participant Private ID", "Article_ID", "Question_ID", "Summary_Text",
             "paraphrasing (%)", "elaboration (%)", "effort (words)", "total_effort (%)"
@@ -88,7 +93,8 @@ def process_responses(passages_file, responses_file, output_file):
 
         for row in reader:
             pid = (row.get("Participant Private ID") or "").strip()
-            article_id = (row.get("Article_ID") or "").strip()
+            # Clean this ID the same way as above
+            article_id = str(row.get("Article_ID") or "").strip().lower()
             qid = (row.get("Question_ID") or "").strip()
             response = (row.get("Summary_Text") or "").strip()
 
@@ -96,7 +102,8 @@ def process_responses(passages_file, responses_file, output_file):
                 continue
 
             if article_id not in passages:
-                print(f"Warning: no passage for Article_ID={article_id} (participant {pid}, {qid})")
+                # This will now show you exactly what the script is "seeing"
+                print(f"Warning: no passage for Article_ID='{article_id}'")
                 continue
 
             passage_sentences = split_sentences(passages[article_id])
@@ -107,7 +114,7 @@ def process_responses(passages_file, responses_file, output_file):
 
             writer.writerow({
                 "Participant Private ID": pid,
-                "Article_ID": article_id,
+                "Article_ID": row.get("Article_ID"), # Keep original casing for output
                 "Question_ID": qid,
                 "Summary_Text": response,
                 "paraphrasing (%)": round(paraphrasing, 3),
@@ -116,6 +123,5 @@ def process_responses(passages_file, responses_file, output_file):
                 "total_effort (%)": round(total_effort, 3),
             })
 
-    print(f"RSAT scores written to {output_file}")
-
+print(f"RSAT scores written to {output_file}")
 process_responses("Passages.csv", "Long_final.csv", "rsat2_scored.csv")
