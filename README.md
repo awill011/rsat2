@@ -22,14 +22,7 @@ Manual RSAT scoring is time-intensive and prone to human error. This tool replac
 
 ---
 
-## How to run it
 
-```bash
-git clone https://github.com/awill011/Rsatscoring
-cd Rsatscoring
-pip install -r requirements.txt
-python lltlab/rsat_score.py --input data/responses.csv --output results/scores.csv
-```
 
 **Input:** CSV with participant verbal protocol responses per item  
 **Output:** CSV with SW/PW, effort, and SNO/PW scores per participant per item
